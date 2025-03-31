@@ -34,4 +34,3 @@ response = requests.post(
     timeout=60,
 ).json()
 ```
-

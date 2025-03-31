@@ -1,15 +1,16 @@
+import datetime
+import gc
+import logging
+import re
+import traceback
+from string import Template
+
+import nvidia_smi
+import torch
+import uvicorn
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from transformers import AutoTokenizer
-import torch
-import uvicorn
-import nvidia_smi
-import logging
-import traceback
-import re
-import gc
-from string import Template
-import datetime
 from vllm import LLM, SamplingParams
 
 nvidia_smi.nvmlInit()
@@ -50,16 +51,18 @@ class StatusResponse(BaseModel):
 
 
 def log_gpu_usage(str_template):
-    log.info(str_template.substitute(msg=f"Memory Usage..."))
+    log.info(str_template.substitute(msg="Memory Usage..."))
     for i in range(GPU_Device_Count):
         handle = nvidia_smi.nvmlDeviceGetHandleByIndex(i)
         util = nvidia_smi.nvmlDeviceGetUtilizationRates(handle)
         mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
-        log.info(
-            str_template.substitute(
-                msg=f"|Device {i}| Mem Free: {mem.free/1024**3:5.2f}GB / {mem.total/1024**3:5.2f}GB | gpu-util: {util.gpu/100.0:3.1%} | gpu-mem: {util.memory/100.0:3.1%} |"
-            )
+        msg = (
+            f"|Device {i}| "
+            f"Mem Free: {mem.free/1024**3:5.2f}GB / {mem.total/1024**3:5.2f}GB | "
+            f"gpu-util: {util.gpu/100.0:3.1%} | "
+            f"gpu-mem: {util.memory/100.0:3.1%} |"
         )
+        log.info(str_template.substitute(msg=msg))
 
 
 @app.post("/generate", response_model=StatusResponse)
@@ -98,7 +101,7 @@ async def generate(request: Request) -> StatusResponse:
         log.info(tp.substitute(msg=f"input tokens: {input_size} "))
 
         output_size = len(outputs[0].outputs[0].token_ids)
-        log.info(tp.substitute(msg=f"----------------"))
+        log.info(tp.substitute(msg="----------------"))
         log.info(
             tp.substitute(msg=f"output tokens n/s:{output_size} {output_size/dt} ")
         )
